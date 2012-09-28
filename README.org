@@ -1,0 +1,62 @@
+* Goal
+  Reduce time between text file modification and result modification.
+* Sources
+Bert Victor's Inventing on principle demos :
+http://www.youtube.com/watch?v=PUv66718DII
+* Procedure
+Mount a RAM disk
+On Linux :
+ : sudo mount -t tmpfs -o size=100M tmpfs ramdisk/
+Create a file :
+#+begin_src
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\begin{document}
+\pagestyle{empty}
+
+
+    
+\begin{tikzpicture}
+
+
+\end{tikzpicture}
+
+
+\end{document}
+
+#+end_src
+
+Create a Makefile for the command that will compile it :
+#+begin_src
+all: Image.pdf
+
+Image.pdf: Image.tex
+	pdflatex Image.tex
+
+
+#+end_src
+* Scratch
+I need : a buffer, a command to build the output file, the name of the output file, a command to setup the view of the output file, a command to refresh the view of the output file.
+
+In a loop :
+ - write buffer content to file in ramdisk
+ - build output file
+ - refresh output file
+
+(defun saycoucou
+  (message "Coucou !2"))
+
+(setq debug-on-error t)
+(start-process "my-process" "foo" "make")
+(defun hello-world (process event) (princ "hello, world\n"))
+(set-process-sentinel (get-process "my-process") 'hello-world)
+(start-process "my-process" "foo" "make")
+(set-process-sentinel (get-process "my-process") 'hello-world)
+
+
+
+
+
+
