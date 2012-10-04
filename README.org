@@ -4,6 +4,11 @@
 Bert Victor's Inventing on principle demos :
 http://www.youtube.com/watch?v=PUv66718DII
 * Procedure
+** Test
+Run : 
+ : rm /tmp/FuseDB.log ; python RTEFS.py /tmp/mnt/ &&  wc  /tmp/mnt/error.txt ; cat /tmp/FuseDB.log && sudo umount /tmp/mnt/
+
+** Scratch
 Mount a RAM disk
 On Linux :
  : sudo mount -t tmpfs -o size=100M tmpfs ramdisk/

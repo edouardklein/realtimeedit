@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 import os, stat, errno, fuse
 from fuse import Fuse
+fuse.fuse_python_api = (0, 2)
+
+def Llog( aString ):
+    f = open("/tmp/FuseDB.log","a")
+    f.write( aString )
+    f.close()
 
 class MyStat(fuse.Stat):
     def __init__(self):
@@ -16,69 +22,109 @@ class MyStat(fuse.Stat):
         self.st_ctime = 0
 
 class Path:
-    def __init__(self):
-        self.path=''
+    def __init__(self, path=''):
+        self.path=path
     def getattr(self):
         return MyStat()
 
 class File(Path):
-    def __init__(self):
-        pass
-
-class Dir(Path):
-    def __init__(self):
-        pass
+    buffer = ''
     def getattr(self):
-        #FIXME: Appel à la fonction du parent
-        answer =
-        answer.st_mode = stat.S_IFDIR | 0755
-        anwser.st_nlink = 2
-
-input = Dir()
-input.path = '/input'
-
-class RTEFS(Fuse):
-
-    def getattr(self, path):
-        st = MyStat()
-        if path == '/':
-        elif path == input.path:
-            st.st_mode = stat.S_IFREG | 0444
-            st.st_nlink = 1
-            st.st_size = len(hello_str)
-        else:
-            return -errno.ENOENT
-        return st
-
-    def readdir(self, path, offset):
-        for r in  '.', '..', cwd.path[1:]:
-            yield fuse.Direntry(r)
-
-    def open(self, path, flags):
-        if path != hello_path:
-            return -errno.ENOENT
-        accmode = os.O_RDONLY | os.O_WRONLY | os.O_RDWR
-        if (flags & accmode) != os.O_RDONLY:
-            return -errno.EACCES
-
-    def read(self, path, size, offset):
-        if path != hello_path:
-            return -errno.ENOENT
-        slen = len(hello_str)
+        answer = Path.getattr( self )
+        answer.st_mode = stat.S_IFREG | 0444
+        answer.st_nlink = 1
+        answer.st_size = len(self.buffer)
+        Llog( "gettattr de File\n") 
+        return answer
+    def read( self, size, offset ):
+        slen = len(self.buffer)
+        Llog( "\tread de File"+str(offset)+"sz"+str(size)+"\n") 
         if offset < slen:
             if offset + size > slen:
                 size = slen - offset
-            buf = hello_str[offset:offset+size]
+            buf = self.buffer[offset:offset+size]
         else:
             buf = ''
+        #Llog( "\tread de File"+buf+"\n") 
         return buf
+
+
+class Dir(Path):
+    def getattr(self):
+        answer = Path.getattr( self )
+        answer.st_mode = stat.S_IFDIR | 0777
+        answer.st_nlink = 2
+        return answer
+
+Dot = Dir('.')
+DotDot = Dir('..')
+Root = Dir('/')
+Input = Dir('/input')
+Error = File('/error.txt')
+Error.buffer = "Coucou"
+   
+class RTEFS(Fuse):
+
+    FS = [Dot,DotDot,Root,Input,Error]
+    
+    def matchByPath( self, path ):
+        #Llog( "matchbypath sur "+path+"\n")
+        matchingEl = [ x for x in self.FS if x.path==path]
+        #Llog( "matching el a une valeur"+str(len(matchingEl))+"\n")
+        
+        if len(matchingEl) == 0:
+            #Llog( "\tmatchbypath raises an error\n")
+            raise IOError()
+        assert( len(matchingEl) == 1)
+        Llog( "\tmatchbypath returns something\n")
+        return matchingEl[0]
+    
+    def getattr(self, path):
+        Llog( "getattr1 sur "+path+", we try\n")
+        file = None
+        try:
+            file = self.matchByPath( path )
+        except IOError:
+            Llog( "\treturn error"+"\n")
+            f.close()
+            return -errno.ENOENT
+        Llog( "\treturn un truc"+str(file)+"\n")
+        return file.getattr()
+    
+    def readdir(self, path, offset):
+        Llog( "readdir sur "+path+"\n")
+        for r in  [f for f in self.FS if f.path != '/']:
+            path = r.path
+            if path[0] == '/':
+                path=path[1:]
+            Llog( "\treaddir sur "+path+"\n")
+            yield fuse.Direntry(path)
+
+            
+    def open(self, path, flags):
+        Llog( "open sur "+path+"\n")
+        file = None
+        try:
+            file = self.matchByPath( path )
+        except IOError:
+            return -errno.ENOENT
+
+    def read(self, path, size, offset):
+        Llog( "read sur "+path+"\n")
+        try:
+            file = self.matchByPath( path )
+        except IOError:
+            return -errno.ENOENT
+        return file.read( size, offset )
 
 def main():
     usage="""
 Userspace hello example
 
 """ + Fuse.fusage
-    server = HelloFS(version="%prog " + fuse.__version__,
+    Llog( "toto"+"\n")
+    
+    server = RTEFS(version="%prog " + fuse.__version__,
                      usage=usage,
                      dash_s_do='setsingle')
 
