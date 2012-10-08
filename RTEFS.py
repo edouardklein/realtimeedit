@@ -1,167 +1,136 @@
-#!/usr/bin/env python
-import os, stat, errno, fuse
-from fuse import Fuse
-fuse.fuse_python_api = (0, 2)
+import logging
 
-def Llog( aString ):
-    f = open("/tmp/FuseDB.log","a")
-    f.write( aString )
-    f.close()
+from collections import defaultdict
+from errno import ENOENT
+from stat import S_IFDIR, S_IFLNK, S_IFREG
+from sys import argv, exit
+from time import time
 
-class MyStat(fuse.Stat):
+from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
+
+if not hasattr(__builtins__, 'bytes'):
+    bytes = str
+
+class Memory(LoggingMixIn, Operations):
+    'Example memory filesystem. Supports only one level of files.'
+
     def __init__(self):
-        self.st_mode = 0
-        self.st_ino = 0
-        self.st_dev = 0
-        self.st_nlink = 0
-        self.st_uid = 0
-        self.st_gid = 0
-        self.st_size = 0
-        self.st_atime = 0
-        self.st_mtime = 0
-        self.st_ctime = 0
+        self.files = {}
+        self.data = defaultdict(bytes)
+        self.fd = 0
+        now = time()
+        self.files['/'] = dict(st_mode=(S_IFDIR | 0755), st_ctime=now,
+                               st_mtime=now, st_atime=now, st_nlink=2)
+        logging.debug("Initialization toto")
 
-class Path:
-    def __init__(self, path=''):
-        self.path=path
-    def getattr(self):
-        return MyStat()
+    def chmod(self, path, mode):
+        self.files[path]['st_mode'] &= 0770000
+        self.files[path]['st_mode'] |= mode
+        return 0
 
-class File(Path):
-    buffer = ''
-    def getattr(self):
-        answer = Path.getattr( self )
-        answer.st_mode = stat.S_IFREG | 0777
-        answer.st_nlink = 1
-        answer.st_size = len(self.buffer)
-        Llog( "gettattr de File\n") 
-        return answer
-    def read( self, size, offset ):
-        slen = len(self.buffer)
-        Llog( "\tread de File"+str(offset)+"sz"+str(size)+"\n") 
-        if offset < slen:
-            if offset + size > slen:
-                size = slen - offset
-            buf = self.buffer[offset:offset+size]
-        else:
-            buf = ''
-        #Llog( "\tread de File"+buf+"\n") 
-        return buf
+    def chown(self, path, uid, gid):
+        self.files[path]['st_uid'] = uid
+        self.files[path]['st_gid'] = gid
 
+    def create(self, path, mode):
+        self.files[path] = dict(st_mode=(S_IFREG | mode), st_nlink=1,
+                                st_size=0, st_ctime=time(), st_mtime=time(),
+                                st_atime=time())
 
-class Dir(Path):
-    def getattr(self):
-        answer = Path.getattr( self )
-        answer.st_mode = stat.S_IFDIR | 0777
-        answer.st_nlink = 2
-        return answer
+        self.fd += 1
+        return self.fd
 
-Dot = Dir('.')
-DotDot = Dir('..')
-Root = Dir('/')
-Input = Dir('/input')
-Error = File('/error.txt')
-Error.buffer = "Coucou"
-   
-class RTEFS(Fuse):
+    def getattr(self, path, fh=None):
+        if path not in self.files:
+            raise FuseOSError(ENOENT)
 
-    FS = [Dot,DotDot,Root,Error,Input]
-    State = "Waiting"
-    
-    def matchByPath( self, path ):
-        #Llog( "matchbypath sur "+path+"\n")
-        matchingEl = [ x for x in self.FS if x.path==path]
-        #Llog( "matching el a une valeur"+str(len(matchingEl))+"\n")
-        
-        if len(matchingEl) == 0:
-            #Llog( "\tmatchbypath raises an error\n")
-            raise IOError()
-        assert( len(matchingEl) == 1)
-        Llog( "\tmatchbypath returns something\n")
-        return matchingEl[0]
-    
-    def getattr(self, path):
-        Llog( "getattr1 sur "+path+", we try\n")
-        file = None
+        return self.files[path]
+
+    def getxattr(self, path, name, position=0):
+        attrs = self.files[path].get('attrs', {})
+
         try:
-            file = self.matchByPath( path )
-        except IOError:
-            if Input in self.FS and path[0:7] == '/input/':
-                Llog( "\tGetAttr sur un fichier d'input\n")
-                return File(path).getattr()
-            Llog( "\treturn error"+"\n")
-            f.close()
-            return -errno.ENOENT
-        Llog( "\treturn un truc"+str(file)+"\n")
-        return file.getattr()
-    
-    def readdir(self, path, offset):
-        Llog( "readdir sur "+path+"\n")
-        for r in  [f for f in self.FS if f.path != '/']:
-            path = r.path
-            if path[0] == '/':
-                path=path[1:]
-            Llog( "\treaddir sur "+path+"\n")
-            yield fuse.Direntry(path)
+            return attrs[name]
+        except KeyError:
+            return '' # Should return ENOATTR
 
-    def chmod ( self, path, mode ):
-        Llog( "chmod sur "+path+"\n")
-        return 0
-    
-    def chown ( self, path, uid, gid ):
-        Llog( "chown sur "+path+"\n")
-        return 0
-    
-    def utime ( self, path, times ):
-        Llog( "utime sur "+path+"\n")
-        return 0
-       
-    def mknod(path, mode, rdev):
-        Llog( "mknod sur "+path+"\n")
-        return 0
+    def listxattr(self, path):
+        attrs = self.files[path].get('attrs', {})
+        return attrs.keys()
 
-    def create(path, mode, rdev):
-        Llog( "mknod sur "+path+"\n")
-        return 0
-       
+    def mkdir(self, path, mode):
+        self.files[path] = dict(st_mode=(S_IFDIR | mode), st_nlink=2,
+                                st_size=0, st_ctime=time(), st_mtime=time(),
+                                st_atime=time())
 
+        self.files['/']['st_nlink'] += 1
 
-            
     def open(self, path, flags):
-        Llog( "open sur "+path+"\n")
-        file = None
+        self.fd += 1
+        return self.fd
+
+    def read(self, path, size, offset, fh):
+        return self.data[path][offset:offset + size]
+
+    def readdir(self, path, fh):
+        return ['.', '..'] + [x[1:] for x in self.files if x != '/']
+
+    def readlink(self, path):
+        return self.data[path]
+
+    def removexattr(self, path, name):
+        attrs = self.files[path].get('attrs', {})
+
         try:
-            file = self.matchByPath( path )
-        except IOError:
-            if Input in self.FS and path[0:7] == '/input/':
-                Llog( "Open sur un fichier d'input\n")
-                return
-            else:
-                return -errno.ENOENT
+            del attrs[name]
+        except KeyError:
+            pass # Should return ENOATTR
 
-    def read(self, path, size, offset):
-        Llog( "read sur "+path+"\n")
-        try:
-            file = self.matchByPath( path )
-        except IOError:
-            return -errno.ENOENT
-        return file.read( size, offset )
-    def write ( self, path, buf, offset ):
-        LLog("Write sur "+path+"\n")
-        return len(buf)
-def main():
-    usage="""
-Userspace hello example
+    def rename(self, old, new):
+        self.files[new] = self.files.pop(old)
 
-""" + Fuse.fusage
-    Llog( "toto"+"\n")
-    
-    server = RTEFS(version="%prog " + fuse.__version__,
-                     usage=usage,
-                     dash_s_do='setsingle')
+    def rmdir(self, path):
+        self.files.pop(path)
+        self.files['/']['st_nlink'] -= 1
 
-    server.parse(errex=1)
-    server.main()
+    def setxattr(self, path, name, value, options, position=0):
+        # Ignore options
+        attrs = self.files[path].setdefault('attrs', {})
+        attrs[name] = value
+
+    def statfs(self, path):
+        return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
+
+    def symlink(self, target, source):
+        self.files[target] = dict(st_mode=(S_IFLNK | 0777), st_nlink=1,
+                                  st_size=len(source))
+
+        self.data[target] = source
+
+    def truncate(self, path, length, fh=None):
+        self.data[path] = self.data[path][:length]
+        self.files[path]['st_size'] = length
+
+    def unlink(self, path):
+        self.files.pop(path)
+
+    def utimens(self, path, times=None):
+        now = time()
+        atime, mtime = times if times else (now, now)
+        self.files[path]['st_atime'] = atime
+        self.files[path]['st_mtime'] = mtime
+
+    def write(self, path, data, offset, fh):
+        self.data[path] = self.data[path][:offset] + data
+        self.files[path]['st_size'] = len(self.data[path])
+        return len(data)
+
 
 if __name__ == '__main__':
-    main()
+    if len(argv) != 2:
+        print('usage: %s <mountpoint>' % argv[0])
+        exit(1)
+
+    logging.getLogger().setLevel(logging.DEBUG)
+    fuse = FUSE(Memory(), argv[1], foreground=True)
+
