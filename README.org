@@ -3,7 +3,44 @@
 * Sources
 Bert Victor's Inventing on principle demos :
 http://www.youtube.com/watch?v=PUv66718DII
+* Dependencies
+  Python interface for FUSE :
+  http://sourceforge.net/apps/mediawiki/fuse/index.php?title=FusePython
 * Procedure
+** Things to check :
+   In case of a problem, the compile commands fail (does not wait for input) with a non zero error code.
+
+** Editor's job
+*** Setup
+    - Write compile command in $RTE/compile.sh
+    - Write view command in $RTE/view.sh
+    - Write name of working directory in $RTE/cwd
+*** Loop
+    - If file $RTE/error.txt exists
+      - Read it and handle error
+    - Else, If dir $RTE/input/ is writable
+      - Write the content of the buffer, under the corresponding file name
+    - Wait for buffer to change
+** RTEAgent's job
+*** Setup
+    - Create a ramdisk
+    - On write in $RTE/cwd, copy contents of $CWD to ramdisk
+      FIXME: A complete chroot in the ramdisk, with all the files accessed during compilation would be better
+      Before implementing that, however, I should check wether it actually speed things up
+      FIXME: For python programs, maybe make use of the interpreter of the author of PhD grind, not to have to compute everything again each time
+*** Loop
+    - Allow writing in $RTE/input/
+    - Wait for input in $RTE/input/
+    - on fclose(), disallow writing in $RTE/input/ (this should be done in a critical section, before letting the editor return from fclose)
+    - Copy newly gained input on the ramdisk (overwriting whatever's in there)
+    - compile using provided command
+    - if return code of compilation is not OK
+      - create error.txt
+      - wait for reading on error.txt
+      - on read, give the output and standard error of failed command
+    - if it is (OK)
+      - launch the view command
+** Scratch
 Mount a RAM disk
 On Linux :
  : sudo mount -t tmpfs -o size=100M tmpfs ramdisk/
