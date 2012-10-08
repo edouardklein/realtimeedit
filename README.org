@@ -40,6 +40,10 @@ http://www.youtube.com/watch?v=PUv66718DII
       - on read, give the output and standard error of failed command
     - if it is (OK)
       - launch the view command
+** Test
+Run : 
+ : rm /tmp/FuseDB.log ; python RTEFS.py /tmp/mnt/ &&  wc  /tmp/mnt/error.txt ; cat /tmp/FuseDB.log && sudo umount /tmp/mnt/
+
 ** Scratch
 Mount a RAM disk
 On Linux :
