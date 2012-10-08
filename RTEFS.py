@@ -31,7 +31,7 @@ class File(Path):
     buffer = ''
     def getattr(self):
         answer = Path.getattr( self )
-        answer.st_mode = stat.S_IFREG | 0444
+        answer.st_mode = stat.S_IFREG | 0777
         answer.st_nlink = 1
         answer.st_size = len(self.buffer)
         Llog( "gettattr de File\n") 
@@ -65,7 +65,8 @@ Error.buffer = "Coucou"
    
 class RTEFS(Fuse):
 
-    FS = [Dot,DotDot,Root,Input,Error]
+    FS = [Dot,DotDot,Root,Error,Input]
+    State = "Waiting"
     
     def matchByPath( self, path ):
         #Llog( "matchbypath sur "+path+"\n")
@@ -85,6 +86,9 @@ class RTEFS(Fuse):
         try:
             file = self.matchByPath( path )
         except IOError:
+            if Input in self.FS and path[0:7] == '/input/':
+                Llog( "\tGetAttr sur un fichier d'input\n")
+                return File(path).getattr()
             Llog( "\treturn error"+"\n")
             f.close()
             return -errno.ENOENT
@@ -100,6 +104,28 @@ class RTEFS(Fuse):
             Llog( "\treaddir sur "+path+"\n")
             yield fuse.Direntry(path)
 
+    def chmod ( self, path, mode ):
+        Llog( "chmod sur "+path+"\n")
+        return 0
+    
+    def chown ( self, path, uid, gid ):
+        Llog( "chown sur "+path+"\n")
+        return 0
+    
+    def utime ( self, path, times ):
+        Llog( "utime sur "+path+"\n")
+        return 0
+       
+    def mknod(path, mode, rdev):
+        Llog( "mknod sur "+path+"\n")
+        return 0
+
+    def create(path, mode, rdev):
+        Llog( "mknod sur "+path+"\n")
+        return 0
+       
+
+
             
     def open(self, path, flags):
         Llog( "open sur "+path+"\n")
@@ -107,7 +133,11 @@ class RTEFS(Fuse):
         try:
             file = self.matchByPath( path )
         except IOError:
-            return -errno.ENOENT
+            if Input in self.FS and path[0:7] == '/input/':
+                Llog( "Open sur un fichier d'input\n")
+                return
+            else:
+                return -errno.ENOENT
 
     def read(self, path, size, offset):
         Llog( "read sur "+path+"\n")
@@ -116,7 +146,9 @@ class RTEFS(Fuse):
         except IOError:
             return -errno.ENOENT
         return file.read( size, offset )
-
+    def write ( self, path, buf, offset ):
+        LLog("Write sur "+path+"\n")
+        return len(buf)
 def main():
     usage="""
 Userspace hello example
