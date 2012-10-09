@@ -1,4 +1,4 @@
-#This test checks that the RTEAgent can use the ramdisk and actually compile and vie the examples it is given.
+#This test checks that the RTEAgent can use the ramdisk and actually compile and view the examples it is given.
 #This test do not use the Fuse filesystem, nor do we need a text editor
 from RTEAgent import *
 logging.getLogger().setLevel(logging.DEBUG)
