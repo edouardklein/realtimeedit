@@ -4,8 +4,10 @@
 Bert Victor's Inventing on principle demos :
 http://www.youtube.com/watch?v=PUv66718DII
 * Dependencies
-  Python interface for FUSE :
-  http://sourceforge.net/apps/mediawiki/fuse/index.php?title=FusePython
+  Python interface for FUSE (one that works, that is ;) :
+  https://github.com/terencehonles/fusepy
+  a mount_tmpfs script
+  https://gist.github.com/822455 for MacOSX
 * Procedure
 ** Things to check :
    In case of a problem, the compile commands fail (does not wait for input) with a non zero error code.
@@ -41,6 +43,8 @@ http://www.youtube.com/watch?v=PUv66718DII
     - if it is (OK)
       - launch the view command
 ** Test
+Run :
+ : pushd testLatex; python ../testRTEAgent.py; popd
 Run : 
  : rm /tmp/FuseDB.log ; python RTEFS.py /tmp/mnt/ &&  wc  /tmp/mnt/error.txt ; cat /tmp/FuseDB.log && sudo umount /tmp/mnt/
 

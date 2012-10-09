@@ -1,4 +1,8 @@
+#!/usr/bin/env python
+
 import logging
+
+import threading
 
 from collections import defaultdict
 from errno import ENOENT
@@ -11,17 +15,27 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 if not hasattr(__builtins__, 'bytes'):
     bytes = str
 
-class Memory(LoggingMixIn, Operations):
-    'Example memory filesystem. Supports only one level of files.'
+class RTEAThread( threading.Thread ):
+    def __init__( self, rteFS, rteAgent ):
+        threading.Thread.__init__(self)
+        self.rteFS = rteFS
+        self.rteAgent = rteAgent
+    def run( self ):
+        logging.debug("I should compile the stuff")
+        self.rteFS.files['/input']['st_mode'] = (S_IFDIR | 0777)    
+        
+class RTEFS(LoggingMixIn, Operations):
+    'FS for control of the Real-Time Editing agent, drawing from the fusepy Example memory filesystem.'
 
     def __init__(self):
         self.files = {}
         self.data = defaultdict(bytes)
         self.fd = 0
         now = time()
-        self.files['/'] = dict(st_mode=(S_IFDIR | 0755), st_ctime=now,
+        self.files['/'] = dict(st_mode=(S_IFDIR | 0777), st_ctime=now,
                                st_mtime=now, st_atime=now, st_nlink=2)
-        logging.debug("Initialization toto")
+        self.files['/input'] = dict(st_mode=(S_IFDIR | 0777), st_ctime=now,
+                               st_mtime=now, st_atime=now, st_nlink=2)
 
     def chmod(self, path, mode):
         self.files[path]['st_mode'] &= 0770000
@@ -52,7 +66,7 @@ class Memory(LoggingMixIn, Operations):
         try:
             return attrs[name]
         except KeyError:
-            return '' # Should return ENOATTR
+            return ''       # Should return ENOATTR
 
     def listxattr(self, path):
         attrs = self.files[path].get('attrs', {})
@@ -84,7 +98,7 @@ class Memory(LoggingMixIn, Operations):
         try:
             del attrs[name]
         except KeyError:
-            pass # Should return ENOATTR
+            pass        # Should return ENOATTR
 
     def rename(self, old, new):
         self.files[new] = self.files.pop(old)
@@ -125,6 +139,20 @@ class Memory(LoggingMixIn, Operations):
         self.files[path]['st_size'] = len(self.data[path])
         return len(data)
 
+    def release( self, path, fh ):
+        logging.debug("Releasing path : "+path)
+        logging.debug("Data at the end of interaction is :"+self.data[path])
+        if path[0:7] == '/input/':
+            logging.debug("input file written, let's launch the whole shebang")
+            #Input file written
+            #We remove writing rights to /input/ to prevent further editing
+            self.files['/input']['st_mode'] = (S_IFDIR | 0444)
+            #We launch the thread that will give them back
+            RTEAThread( self, None ).start()
+            logging.debug("thread started, returning")
+        #Give back control to user
+        return 0
+
 
 if __name__ == '__main__':
     if len(argv) != 2:
@@ -132,5 +160,5 @@ if __name__ == '__main__':
         exit(1)
 
     logging.getLogger().setLevel(logging.DEBUG)
-    fuse = FUSE(Memory(), argv[1], foreground=True)
-
+    logging.debug("Test")
+    fuse = FUSE(RTEFS(), argv[1], foreground=True)
