@@ -14,6 +14,7 @@ f = open( "main3.tex",'r')
 main3 = f.read()
 f.close()
 agent = RTEAgent()
+var = raw_input("Enter something: ")
 print "Testing to put main1.tex contents in main"
 agent.input("main.tex",main1)
 var = raw_input("Enter something: ")

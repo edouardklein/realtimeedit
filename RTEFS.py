@@ -23,6 +23,7 @@ class RTEAThread( threading.Thread ):
     def run( self ):
         logging.debug("I should compile the stuff")
         self.rteFS.files['/input']['st_mode'] = (S_IFDIR | 0777)    
+        logging.debug("Compile thread finished")
         
 class RTEFS(LoggingMixIn, Operations):
     'FS for control of the Real-Time Editing agent, drawing from the fusepy Example memory filesystem.'
