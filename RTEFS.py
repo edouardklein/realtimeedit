@@ -25,7 +25,7 @@ class RTEAThread( threading.Thread ):
         self.filename = filename
         self.contents = contents
     def run( self ):
-        logging.debug("Compile thread compiling")
+        logging.debug("Compile thread compiling, from change in file "+self.filename)
         self.rteAgent.input( self.filename, self.contents )
         self.rteFS.files['/input']['st_mode'] = (S_IFDIR | 0777)    
         logging.debug("Compile thread finished")
@@ -62,6 +62,12 @@ class RTEFS(LoggingMixIn, Operations):
         return self.fd
 
     def getattr(self, path, fh=None):
+        if path[0:7] == "/input/":
+            st = os.lstat(agent.cwd + path[6:])
+            self.files[path] = dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
+                                                            'st_gid', 'st_mode', 'st_mtime', 'st_nlink',
+                                                            'st_size', 'st_uid'))
+            return self.files[path]
         if path not in self.files:
             raise FuseOSError(ENOENT)
 
