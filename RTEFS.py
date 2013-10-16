@@ -148,27 +148,27 @@ class RTEFS(LoggingMixIn, Operations):
         return len(data)
 
     def release( self, path, fh ):
-        logging.debug("Releasing path : "+path)
-        logging.debug("Data at the end of interaction is :"+self.data[path])
+        #logging.debug("Releasing path : "+path)
+        #logging.debug("Data at the end of interaction is :"+self.data[path])
         if path[0:7] == '/input/':
-            logging.debug("input file written, let's launch the whole shebang")
+            #logging.debug("input file written, let's launch the whole shebang")
             #Input file written
             #We remove writing rights to /input/ to prevent further editing
             self.files['/input']['st_mode'] = (S_IFDIR | 0000)
             #We launch the thread that will give them back
             RTEAThread( self, self.agent,path[7:],self.data[path] ).start()
-            logging.debug("thread started, returning")
+            #logging.debug("thread started, returning")
         #Give back control to user
         return 0
 
     def access( self, path, mode ):
-        logging.debug("Calling access on "+path)
+        #logging.debug("Calling access on "+path)
         if path[0:6] == '/input':
-            logging.debug("Checking wether /input can be accessed")
+            #logging.debug("Checking wether /input can be accessed")
             if self.files['/input']['st_mode'] == (S_IFDIR | 0000):
-                logging.debug("Nope")
-                raise OSError(EACCES)
-            logging.debug("Yep")
+                #logging.debug("Nope")
+                raise FuseOSError(EACCES)
+            #logging.debug("Yep")
         return 0
         
 
@@ -179,8 +179,9 @@ if __name__ == '__main__':
         print('usage: %s <mountpoint>' % argv[0])
         exit(1)
 
-    logging.getLogger().setLevel(logging.DEBUG)
+    #logging.getLogger().setLevel(logging.DEBUG)
     logging.debug("Launching the agent")
     agent = RTEAgent()
     fuse = FUSE(RTEFS( agent ), argv[1], foreground=True,auto_xattr=True)
     
+

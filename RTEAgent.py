@@ -32,20 +32,22 @@ class RTEAgent:
         
     def input( self, filename, contents ):
         logging.debug("Input recieved, compiling")
-        logging.debug("contents :"+contents)
+        #logging.debug("contents :"+contents)
         f = open( self.ramdisk+'/'+filename, "w" )
         f.write(  contents )
         f.close()
         try:
+            print filename,
             logging.debug( "Running : "+self.cdToRamdiskCmd+self.compileCmd)
-            subprocess.check_output( self.cdToRamdiskCmd+self.compileCmd, shell=True )
+            subprocess.check_output( self.cdToRamdiskCmd+self.compileCmd, shell=True,stderr=subprocess.STDOUT )
             logging.debug( "done")
+            print "Success"
         except subprocess.CalledProcessError as err:
+            print "Failure with error :"+err.output
             return err.returncode, err.output
         logging.debug( "Running : "+self.cdToRamdiskCmd+self.viewCmd)
         subprocess.check_output( self.cdToRamdiskCmd+self.viewCmd, shell=True ) #Voluntarily uncaught exception, there should be no error there
         logging.debug("done")
-        self.state="Waiting"
         return 0
 
     def mountRamDisk(self):
