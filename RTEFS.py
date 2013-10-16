@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import logging
 import sys
@@ -12,7 +12,7 @@ from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
 from time import time
 
-from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
+from fuse import FUSE, Operations, LoggingMixIn
 
 if not hasattr(__builtins__, 'bytes'):
     bytes = str
@@ -69,7 +69,7 @@ class RTEFS(LoggingMixIn, Operations):
                                                             'st_size', 'st_uid'))
             return self.files[path]
         if path not in self.files:
-            raise FuseOSError(ENOENT)
+            raise OSError(ENOENT)
 
         return self.files[path]
 
@@ -120,11 +120,6 @@ class RTEFS(LoggingMixIn, Operations):
         self.files.pop(path)
         self.files['/']['st_nlink'] -= 1
 
-    def setxattr(self, path, name, value, options, position=0):
-        # Ignore options
-        attrs = self.files[path].setdefault('attrs', {})
-        attrs[name] = value
-
     def statfs(self, path):
         return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
 
@@ -172,7 +167,7 @@ class RTEFS(LoggingMixIn, Operations):
             logging.debug("Checking wether /input can be accessed")
             if self.files['/input']['st_mode'] == (S_IFDIR | 0000):
                 logging.debug("Nope")
-                raise FuseOSError(EACCES)
+                raise OSError(EACCES)
             logging.debug("Yep")
         return 0
         
@@ -187,4 +182,5 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.DEBUG)
     logging.debug("Launching the agent")
     agent = RTEAgent()
-    fuse = FUSE(RTEFS( agent ), argv[1], foreground=False)
+    fuse = FUSE(RTEFS( agent ), argv[1], foreground=True,auto_xattr=True)
+    
