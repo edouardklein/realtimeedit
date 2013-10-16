@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import logging
 import subprocess
@@ -37,13 +37,13 @@ class RTEAgent:
         f.write(  contents )
         f.close()
         try:
-            print filename,
+            print(filename),
             logging.debug( "Running : "+self.cdToRamdiskCmd+self.compileCmd)
             subprocess.check_output( self.cdToRamdiskCmd+self.compileCmd, shell=True,stderr=subprocess.STDOUT )
             logging.debug( "done")
-            print "Success"
+            print("Success")
         except subprocess.CalledProcessError as err:
-            print "Failure with error :"+err.output
+            print("Failure with error :"+err.output)
             return err.returncode, err.output
         logging.debug( "Running : "+self.cdToRamdiskCmd+self.viewCmd)
         subprocess.check_output( self.cdToRamdiskCmd+self.viewCmd, shell=True ) #Voluntarily uncaught exception, there should be no error there
@@ -60,7 +60,7 @@ class RTEAgent:
         #FIXME: gracefully handling permissions would be nice
         #FIXME: A way to change the size of the ramdisk would be nice
         subprocess.check_call(self.stopViewCmd+"&& sleep 1",shell=True)
-        subprocess.check_call(umount_tmpfs_command+" "+self.ramdisk ,shell=True)
+        subprocess.check_call(umount_tmpfs_command, shell=True)#+" "+self.ramdisk ,shell=True)
 
     def cpyWDtoRamdisk( self ):
         subprocess.check_call("cp -r "+self.cwd+"/* "+self.ramdisk+"/", shell=True)
