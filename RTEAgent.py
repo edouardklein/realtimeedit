@@ -3,14 +3,14 @@ import os
 import logging
 import subprocess
 
-#mount_tmpfs_command = "/Users/edouard/Projets/relatimeedit/mount_tmpfs.sh"
-#umount_tmpfs_command = "/Users/edouard/Projets/relatimeedit/umount_tmpfs.sh"
-mount_tmpfs_command = "/home/edouard/Documents/relatimeedit/linux/mount_tmpfs.sh"
-umount_tmpfs_command = "//home/edouard/Documents/relatimeedit/linux/umount_tmpfs.sh"
+mount_tmpfs_command = r'diskutil erasevolume HFS+ "ramdisk" `hdiutil attach -nomount ram://1165430`' # from http://osxdaily.com/2007/03/23/create-a-ram-disk-in-mac-os-x/
+umount_tmpfs_command = r'umount /Volumes/ramdisk && hdiutil detach /dev/disk1' #make disk1 a variable, it is not always disk1
+#mount_tmpfs_command = "/home/edouard/Documents/relatimeedit/linux/mount_tmpfs.sh"
+#umount_tmpfs_command = "//home/edouard/Documents/relatimeedit/linux/umount_tmpfs.sh"
 
 class RTEAgent:
 
-    def __init__( self, cwd=os.getcwd(), compileCmd="make RTEcompile", firstViewCmd="make RTEstartView", viewCmd="make RTEview", stopViewCmd="make RTEstopView", ramdisk="/tmp/mnt1" ):
+    def __init__( self, cwd=os.getcwd(), compileCmd="make RTEcompile", firstViewCmd="make RTEstartView", viewCmd="make RTEview", stopViewCmd="make RTEstopView", ramdisk="/Volumes/ramdisk" ):
         self.cwd = cwd
         self.compileCmd = compileCmd
         self.ramdisk = ramdisk
@@ -51,8 +51,8 @@ class RTEAgent:
     def mountRamDisk(self):
         #FIXME: gracefully handling permissions would be nice
         #FIXME: A way to change the size of the ramdisk would be nice
-        logging.debug("Ramdisk command : "+mount_tmpfs_command+" "+self.ramdisk)
-        subprocess.check_call(mount_tmpfs_command+" "+self.ramdisk ,shell=True)
+        logging.debug("Ramdisk command : "+mount_tmpfs_command)
+        subprocess.check_call(mount_tmpfs_command,shell=True)
 
     def umountRamDisk(self):
         #FIXME: gracefully handling permissions would be nice
