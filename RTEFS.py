@@ -12,7 +12,7 @@ from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
 from time import time
 
-from fuse import FUSE, Operations, LoggingMixIn
+from fuse import FUSE, Operations, LoggingMixIn, FuseOSError
 
 if not hasattr(__builtins__, 'bytes'):
     bytes = str
@@ -27,7 +27,7 @@ class RTEAThread( threading.Thread ):
     def run( self ):
         logging.debug("Compile thread compiling, from change in file "+self.filename)
         self.rteAgent.input( self.filename, self.contents )
-        self.rteFS.files['/input']['st_mode'] = (S_IFDIR | 0777)    
+        self.rteFS.files['/input']['st_mode'] = (S_IFDIR | 0o777)
         logging.debug("Compile thread finished")
         
 class RTEFS(LoggingMixIn, Operations):
@@ -38,14 +38,14 @@ class RTEFS(LoggingMixIn, Operations):
         self.data = defaultdict(bytes)
         self.fd = 0
         now = time()
-        self.files['/'] = dict(st_mode=(S_IFDIR | 0777), st_ctime=now,
+        self.files['/'] = dict(st_mode=(S_IFDIR | 0o777), st_ctime=now,
                                st_mtime=now, st_atime=now, st_nlink=2)
-        self.files['/input'] = dict(st_mode=(S_IFDIR | 0777), st_ctime=now,
+        self.files['/input'] = dict(st_mode=(S_IFDIR | 0o777), st_ctime=now,
                                st_mtime=now, st_atime=now, st_nlink=2)
         self.agent = agent
         
     def chmod(self, path, mode):
-        self.files[path]['st_mode'] &= 0770000
+        self.files[path]['st_mode'] &= 0o770000
         self.files[path]['st_mode'] |= mode
         return 0
 
@@ -124,7 +124,7 @@ class RTEFS(LoggingMixIn, Operations):
         return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
 
     def symlink(self, target, source):
-        self.files[target] = dict(st_mode=(S_IFLNK | 0777), st_nlink=1,
+        self.files[target] = dict(st_mode=(S_IFLNK | 0o777), st_nlink=1,
                                   st_size=len(source))
 
         self.data[target] = source
@@ -157,18 +157,19 @@ class RTEFS(LoggingMixIn, Operations):
             self.files['/input']['st_mode'] = (S_IFDIR | 0000)
             #We launch the thread that will give them back
             RTEAThread( self, self.agent,path[7:],self.data[path] ).start()
+            #TODO: We should check if a previous compilation is still running
             #logging.debug("thread started, returning")
         #Give back control to user
         return 0
 
     def access( self, path, mode ):
-        #logging.debug("Calling access on "+path)
+        logging.debug("Calling access on "+path)
         if path[0:6] == '/input':
-            #logging.debug("Checking wether /input can be accessed")
+            logging.debug("Checking wether /input can be accessed")
             if self.files['/input']['st_mode'] == (S_IFDIR | 0000):
-                #logging.debug("Nope")
+                logging.debug("Nope")
                 raise FuseOSError(EACCES)
-            #logging.debug("Yep")
+            logging.debug("Yep")
         return 0
         
 
@@ -179,7 +180,7 @@ if __name__ == '__main__':
         print('usage: %s <mountpoint>' % argv[0])
         exit(1)
 
-    #logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO) #Or DEBUG ...
     logging.debug("Launching the agent")
     agent = RTEAgent()
     fuse = FUSE(RTEFS( agent ), argv[1], foreground=True,auto_xattr=True)
