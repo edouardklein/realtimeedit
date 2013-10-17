@@ -2,11 +2,11 @@ RTEcompile:
 	pdflatex -interaction=batchmode main.tex
 
 RTEstartView:
-	xpdf -remote 'testRTE1' main.pdf
+	PAPERSIZE=a4 xpdf -q -remote 'testRTE1' main.pdf
 
 RTEview:
-	xpdf -remote 'testRTE1' -reload
+	PAPERSIZE=a4 xpdf -q -remote 'testRTE1' -reload
 
 RTEstopView:
-	xpdf -remote 'testRTE1' -quit
+	xpdf -q -remote 'testRTE1' -quit
 
