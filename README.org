@@ -1,7 +1,7 @@
 #+TITLE:RTE: Bret Victor's interfaces, the UNIX way
 # #+begin_abstract
 The gap between the time the user edits a text file and the time he sees the effects of his modification creates a cognitive charge that hinders creativity.
-In his presentation at CUSEC 2012, Bret Victor argues for new interfaces where the effects of a modification of the source file is immediatly visible to the user.
+In his presentation at CUSEC 2012, Bret Victor calls for new interfaces where the effects of a modification of the source file is immediatly visible to the user.
 This software implements this idea, in a generic, UNIX-y way. By defining a couple Makefile rules, anybody can edit \LaTeX files in a WYSIWYG kind of way or immediately see tests passing (or breaking) as soon as the last character of a function is inputted.
 # #+end_abstract
 * See it in action
