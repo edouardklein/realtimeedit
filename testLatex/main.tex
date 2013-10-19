@@ -1,15 +1,23 @@
 \documentclass{article} 
 \usepackage[utf8]{inputenc}
- \usepackage{tikz} 
+ \usepackage{tikz}
+ \usetikzlibrary{calc}
 \begin{document} 
 \pagestyle{empty}
     
-\begin{tikzpicture} 
-\node [color=blue] {1,5, 9 3 Nous irons à manille  ?? };
-\node [color=blue] at (0,1){Josepsdfsdfsfdh Cuilllll};
-\node [color=yellow] at (0,7){Joseph cvcvhfsdkfjhsdjfhsdjkfhjk};
-\node [color=blue] at (0,3){Joseph Civilidsfsdfsdsation 12};
-\node [color=blue] at (0,5){Joseph jjhjjdfsdfsdfsdfsdfsdo};
+\begin{tikzpicture} [
+  etape/.style=
+  {rectangle,rounded corners, shade, top color=green!1!white,bottom color=red!80!white!20,draw=white!30!black!90,thick}]
+\node (pseudoLeft) at (0,0){};
+\node [etape,shape=rectangle,text width=7em] (classif) at ($(pseudoLeft.east)+(3,0)$) {Score-based classification poil au bidon};
+\node [etape,text width=7em] (regression) at ($(classif.east)+(2,0)$) {Regression\\(Inverted Bellman equation)};
+\node (pseudoBottom) at ($(regression.south)+(0,-1.5)$) {};
+\node  (pseudoRight) at ($(regression.east)+(2,0)$) {};
+\draw [->] (pseudoLeft) -- node[above]{$(s,\pi^E(s))$}  (classif.west);
+\draw [->] (classif.east) -- node[above]{$q$}  (regression.west);
+\draw [->] (regression.east) -- node[above]{$r$}  (pseudoRight);
+\draw [->] (pseudoBottom) -- node[left]{$(s,a,s')$}  (regression.south);
+
 \end{tikzpicture} 
 
 \end{document}

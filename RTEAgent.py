@@ -23,9 +23,9 @@ class RTEAgent:
         logging.debug("Copying to ramdisk")
         self.cpyWDtoRamdisk()
         logging.debug("First compilation and view")
-        logging.debug( "Running : "+self.cdToRamdiskCmd+self.compileCmd+"&&"+self.firstViewCmd)
+        logging.info( "Running : "+self.cdToRamdiskCmd+self.compileCmd+"&&"+self.firstViewCmd)
         subprocess.Popen(self.cdToRamdiskCmd+self.compileCmd+" && "+self.firstViewCmd, shell=True )
-        logging.debug("Done")
+        logging.info("Done")
 
     def __del__(self):
         self.umountRamDisk()
@@ -37,11 +37,11 @@ class RTEAgent:
         f.write(contents)
         f.close()
         try:
-            logging.debug( "Running : "+self.cdToRamdiskCmd+self.compileCmd)
+            logging.info( "Running : "+self.cdToRamdiskCmd+self.compileCmd)
             subprocess.check_output( self.cdToRamdiskCmd+self.compileCmd, shell=True,stderr=subprocess.STDOUT )
             logging.info("Compilation succeeded")
         except subprocess.CalledProcessError as err:
-            logging.error("Failure with error :"+err.output)
+            logging.info("Failure with error :"+err.output)
             return err.returncode, err.output
         logging.debug( "Running : "+self.cdToRamdiskCmd+self.viewCmd)
         subprocess.check_output( self.cdToRamdiskCmd+self.viewCmd, shell=True ) #Voluntarily uncaught exception, there should be no error there

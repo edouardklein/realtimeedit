@@ -1,5 +1,5 @@
 RTEcompile:
-	pdflatex -interaction=batchmode main.tex
+	pdflatex -interaction=batchmode -halt-on-error main.tex
 
 RTEstartView:
 	PAPERSIZE=a4 xpdf -q -remote 'testRTE1' main.pdf
