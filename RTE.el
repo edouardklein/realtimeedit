@@ -16,6 +16,6 @@
   (setq localDir default-directory)
   ;(message (concat "Launching RTE in directory :" localDir))
   (run-with-idle-timer 0.1 1 (lambda () (write-buf-to-RTEFS localDir "/tmp/mnt/input/")))
-  ;(message "donefsdfsd")
+  ;(message "done")
   )
 

@@ -16,12 +16,12 @@ def grad( theta ):
     return 2*theta[0]
 
 x = 0
-print "Vanilllaaa a a a a a a-----------------------------------"
+print "Vanilla :"
 test = TestGD()
 x = test.run( grad )
 print x    
 
-print "-------------------------------------------------Normalise :"
+print "Normalise :"
 test = TestGD()
 #test.T = -1
 x = test.run( grad,b_norm=True )

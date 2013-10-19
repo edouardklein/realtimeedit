@@ -1,106 +1,70 @@
-* Goal
-  Reduce time between text file modification and result modification.
-* Sources
+#+TITLE:RTE: Bret Victor's interfaces, the UNIX way
+#+begin_abstract
+The gap between the time the user edits a text file and the time he sees the effects of his modification creates a cognitive charge that hinders creativity.
+In his presentation at CUSEC 2012, Bret Victor argues for new interfaces where the effects of a modification of the source file is immediatly visible to the user.
+This software implements this idea, in a generic, UNIX-y way. By defining a couple Makefile rules, anybody can edit \LaTeX files in a WYSIWYG kind of way or immediately see tests passing (or breaking) as soon as the last character of a function is inputted.
+#+end_abstract
+* See it in action
+  A screencast is available : http://www.youtube.com/watch?v=ZS7jBvCrR9s
+* Source video
 Bert Victor's Inventing on principle demos :
 http://www.youtube.com/watch?v=PUv66718DII
-* Dependencies
-  Python interface for FUSE (one that works, that is ;) :
-  https://github.com/terencehonles/fusepy
-  a mount_tmpfs script
-  https://gist.github.com/822455 for MacOSX
-* Procedure
-** Things to check :
-   In case of a problem, the compile commands fail (does not wait for input) with a non zero error code.
+
+* Installation and usage
+** Dependencies
+   Python interface for FUSE (one that works, that is ;) :
+   https://github.com/terencehonles/fusepy
+
+   For LaTeX editing: xpdf
+
+   For HTML editing: uzbl
+** Usage
+   See the screencast for a specific example.
    
+   Create a Makefile with these 4 rules :
+   - =RTEcompile= : This rule will be called after each modification of the text file
+   - =RTEview= : This rule will be called after each successful call to =RTEcompile=
+   - =RTEstartView= and =RTEstopView= : Called when starting and quitting RTE.
+
+    
+   Example of such rules can be found in the testLatex and testPython directories.
+
+   Now call RTE (create /tmp/mnt if need be):
+   : $FOO/RTEFS.py /tmp/mnt
+
+   And fire your text editor of choice
+   : emacs --funcall launch-RTE foo.bar
+   : vim foo.bar #don't forget to launch the UpdateFile function
+*** Emacs
+    Copy the content of [[RTE.el]] into your .emacs
+*** Vim
+    The code of the UpdateFile function is in RTE.vim
+* Technical principle
 ** Editor's job
-*** Setup
-    - Write compile command in $RTE/compile.sh
-    - Write view command in $RTE/view.sh
-    - Write name of working directory in $RTE/cwd
-*** Loop
-    - If file $RTE/error.txt exists
-      - Read it and handle error
-    - Else, If dir $RTE/input/ is writable
+    - If dir $RTE/input/ is writable
       - Write the content of the buffer, under the corresponding file name
     - Wait for buffer to change
 ** RTEAgent's job
 *** Setup
     - Create a ramdisk
-    - On write in $RTE/cwd, copy contents of $CWD to ramdisk
-      FIXME: A complete chroot in the ramdisk, with all the files accessed during compilation would be better
-      Before implementing that, however, I should check wether it actually speed things up
-      FIXME: For python programs, maybe make use of the interpreter of the author of PhD grind, not to have to compute everything again each time
+    - copy contents of $CWD to ramdisk
+    - Make Makefile rule RTEstartView
+      
+    
+    FIXME: A complete chroot in the ramdisk, with all the files accessed during compilation would be better. Before implementing that, however, I should check wether it actually speed things up.
+
+    FIXME: For python programs, maybe make use of [[http://pgbovine.net/incpy.html][this interpreter]], not to have to compute everything again each time.
 *** Loop
-    - Allow writing in $RTE/input/
     - Wait for input in $RTE/input/
-    - on fclose(), disallow writing in $RTE/input/ (this should be done in a critical section, before letting the editor return from fclose)
+    - on fclose(), disallow writing in $RTE/input/
     - Copy newly gained input on the ramdisk (overwriting whatever's in there)
-    - compile using provided command
-    - if return code of compilation is not OK
-      - create error.txt
-      - wait for reading on error.txt
-      - on read, give the output and standard error of failed command
-    - if it is (OK)
-      - launch the view command
+    - Make Makefile rule RTEcompile in a new thread
+    - if the rule execute with no error
+      - Make Makefile rule RTEview
+    - Allow writing in $RTE/input/
 ** Test
 Run :
  : pushd testLatex; python ../testRTEAgent.py; popd
-Run : 
- : rm /tmp/FuseDB.log ; python RTEFS.py /tmp/mnt/ &&  wc  /tmp/mnt/error.txt ; cat /tmp/FuseDB.log && sudo umount /tmp/mnt/
-
-** Scratch
-Mount a RAM disk
-On Linux :
- : sudo mount -t tmpfs -o size=100M tmpfs ramdisk/
-Create a file :
-#+begin_src
-\documentclass{article}
-
-\usepackage[utf8]{inputenc}
-\usepackage{tikz}
-\begin{document}
-\pagestyle{empty}
-
-
-    
-\begin{tikzpicture}
-
-
-\end{tikzpicture}
-
-
-\end{document}
-
-#+end_src
-
-Create a Makefile for the command that will compile it :
-#+begin_src
-all: Image.pdf
-
-Image.pdf: Image.tex
-	pdflatex Image.tex
-
-
-#+end_src
-* Scratch
-I need : a buffer, a command to build the output file, the name of the output file, a command to setup the view of the output file, a command to refresh the view of the output file.
-
-In a loop :
- - write buffer content to file in ramdisk
- - build output file
- - refresh output file
-
-(defun saycoucou
-  (message "Coucou !2"))
-
-(setq debug-on-error t)
-(start-process "my-process" "foo" "make")
-(defun hello-world (process event) (princ "hello, world\n"))
-(set-process-sentinel (get-process "my-process") 'hello-world)
-(start-process "my-process" "foo" "make")
-(set-process-sentinel (get-process "my-process") 'hello-world)
-
-
 
 
 
